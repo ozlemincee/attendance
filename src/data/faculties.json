@@ -1,0 +1,34 @@
+[
+  {
+    "name": "Cerrahpaşa Tıp Fakültesi",
+    "departments": ["Tıp Fakültesi"]
+  },
+  {
+    "name": "Florence Nightingale Hemşirelik Fakültesi",
+    "departments": ["Hemşirelik"]
+  },
+  {
+    "name": "Hasan Âli Yücel Eğitim Fakültesi",
+    "departments": ["Eğitim Bilimleri", "Sınıf Öğretmenliği", "Özel Eğitim", "Rehberlik ve Psikolojik Danışmanlık", "Türkçe Öğretmenliği", "Sosyal Bilgiler Öğretmenliği", "Fen Bilgisi Öğretmenliği", "Matematik ve Fen Bilgisi Eğitimi", "Yabancı Dil Olarak Türkçe Öğretimi", "Beden Eğitimi ve Spor Öğretmenliği"]
+  },
+  {
+    "name": "Mühendislik Fakültesi",
+    "departments": ["Bilgisayar Mühendisliği", "Elektrik-Elektronik Mühendisliği", "Makine Mühendisliği", "İnşaat Mühendisliği", "Çevre Mühendisliği", "Endüstri Mühendisliği", "Gıda Mühendisliği", "Tekstil Mühendisliği", "Biyomedikal Mühendisliği", "Genetik ve Biyomühendislik"]
+  },
+  {
+    "name": "Orman Fakültesi",
+    "departments": ["Orman Mühendisliği", "Orman Endüstri Mühendisliği", "Ağaç İşleri Endüstri Mühendisliği", "Orman Botaniği", "Ormancılık ve Orman Ürünleri Mühendisliği"]
+  },
+  {
+    "name": "Sağlık Bilimleri Fakültesi",
+    "departments": ["Fizyoterapi ve Rehabilitasyon", "Sağlık Yönetimi", "Ebelik", "Sosyal Hizmet", "Beslenme ve Diyetetik", "Çocuk Gelişimi", "Ağız ve Diş Sağlığı", "Sağlık Bilgi Sistemleri"]
+  },
+  {
+    "name": "Spor Bilimleri Fakültesi",
+    "departments": ["Antrenörlük Eğitimi", "Beden Eğitimi ve Spor Öğretmenliği", "Spor Yöneticiliği", "Rekreasyon", "Fiziksel Aktivite ve Spor Bilimleri"]
+  },
+  {
+    "name": "Veteriner Fakültesi",
+    "departments": ["Veteriner Hekimliği", "Hayvan Besleme ve Beslenme Hastalıkları", "Fizyoloji", "Patoloji", "Farmakoloji ve Toksikoloji", "Mikrobiyoloji", "Parazitoloji", "Biyokimya", "Fizyopatoloji", "Cerrahi"]
+  }
+]
