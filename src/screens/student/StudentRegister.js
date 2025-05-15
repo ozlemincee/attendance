@@ -1,475 +1,376 @@
-import React, { useState, useRef } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Alert, StyleSheet, Modal, Dimensions } from "react-native";
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, ScrollView, Alert, StyleSheet, Dimensions } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { Button, TextInput as PaperInput, Modal as PaperModal, Paragraph, useTheme, ProgressBar } from 'react-native-paper';
-import { kvkkText } from "../../data/kvkk"; // Import KVKK Text
+import { kvkkText } from "../../data/kvkk";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import facultiesData from "../../data/faculties.json";
-import { Camera, useCameraDevices } from 'react-native-vision-camera';
+import FaceRegister from "./FaceRegister"; // Doğru import
 
 const { width, height } = Dimensions.get('window');
 
+const cameraGuides = [
+    "Lütfen yüzünüzü kameranın merkezine yerleştirin",
+    "Şimdi lütfen yüzünüzü hafifçe sağa çevirin",
+    "Şimdi lütfen yüzünüzü hafifçe sola çevirin",
+    "Şimdi lütfen yüzünüzü hafifçe yukarı kaldırın",
+    "Son fotoğraf için tekrar normal poz verin"
+];
+
 export default function StudentRegister({ navigation }) {
-  const theme = useTheme();
-  const devices = useCameraDevices();
-  const device = devices.front;
-  
-  const [formData, setFormData] = useState({
-    name: "",
-    studentNo: "",
-    email: "",
-    address: "",
-    password: "",
-    verificationCode: "",
-    isVerified: false,
-    studentFaculty: "",
-    studentDepartment: "",
-    studentClass: "",
-    kvkkAccepted: false,
-    facePhotos: [], // Array to store face photos
-  });
-  const [selectedFaculty, setSelectedFaculty] = useState("");
-  const [selectedDepartment, setSelectedDepartment] = useState("");
-  const [departments, setDepartments] = useState([]);
-  const [hasPermission, setHasPermission] = useState(null);
-  const [cameraVisible, setCameraVisible] = useState(false);
-  const [photoCount, setPhotoCount] = useState(0);
-  const [cameraGuide, setCameraGuide] = useState("Lütfen yüzünüzü kameraya doğru çevirin");
-  const cameraRef = useRef(null);
-  const [kvkkVisible, setKvkkVisible] = useState(false);
-  const [cameraType, setCameraType] = useState('front');
+    const [formData, setFormData] = useState({
+        name: "",
+        studentNo: "",
+        email: "",
+        address: "",
+        password: "",
+        verificationCode: "",
+        isVerified: false,
+        studentFaculty: "",
+        studentDepartment: "",
+        studentClass: "",
+        kvkkAccepted: false,
+        facePhotos: [],
+    });
+    const [selectedFaculty, setSelectedFaculty] = useState("");
+    const [selectedDepartment, setSelectedDepartment] = useState("");
+    const [departments, setDepartments] = useState([]);
+    const [kvkkVisible, setKvkkVisible] = useState(false);
 
-  React.useEffect(() => {
-    (async () => {
-      const cameraPermission = await Camera.requestCameraPermission();
-      setHasPermission(cameraPermission === 'granted');
-    })();
-  }, []);
+    const handleFacultyChange = (faculty) => {
+        setSelectedFaculty(faculty);
+        const selected = facultiesData.find((f) => f.name === faculty);
+        setDepartments(selected ? selected.departments : []);
+        setFormData((prev) => ({ ...prev, studentFaculty: faculty, studentDepartment: "" }));
+        setSelectedDepartment("");
+    };
 
-  const handleFacultyChange = (faculty) => {
-    setSelectedFaculty(faculty);
-    const selected = facultiesData.find((f) => f.name === faculty);
-    setDepartments(selected ? selected.departments : []);
-    setFormData((prev) => ({ ...prev, studentFaculty: faculty }));
-  };
+    const handlePhotosCaptured = (photos) => {
+        setFormData(prev => ({ ...prev, facePhotos: photos }));
+        Alert.alert("Başarılı", `${photos.length} adet yüz fotoğrafı alındı.`);
+    };
 
-  const takePicture = async () => {
-    if (cameraRef.current) {
-      try {
-        const photo = await cameraRef.current.takePhoto({
-          quality: 70,
-          skipMetadata: true
-        });
-        
-        const newPhotos = [...formData.facePhotos, photo.path];
-        setFormData(prev => ({
-          ...prev,
-          facePhotos: newPhotos
-        }));
-        
-        setPhotoCount(prev => prev + 1);
-        
-        // Update camera guide based on the photo count
-        if (photoCount + 1 >= 5) {
-          setCameraVisible(false);
-          Alert.alert("Başarılı", "Yüz kayıt işlemi tamamlandı!", [
-            { text: "Tamam", onPress: () => console.log("OK Pressed") }
-          ]);
-        } else {
-          const guides = [
-            "Şimdi lütfen yüzünüzü sağa çevirin",
-            "Şimdi lütfen yüzünüzü sola çevirin",
-            "Şimdi lütfen yüzünüzü yukarı kaldırın",
-            "Son fotoğraf için normal poz verin"
-          ];
-          setCameraGuide(guides[photoCount]);
-          Alert.alert(
-            "Fotoğraf Alındı", 
-            `${photoCount + 1}/5 fotoğraf alındı. ${guides[photoCount]}`, 
-            [{ text: "Devam", onPress: () => console.log("Continue") }]
-          );
+    const sendVerificationCode = () => {
+        if (!formData.kvkkAccepted) {
+            Alert.alert("Hata", "KVKK sözleşmesini kabul etmelisiniz.");
+            return;
         }
-      } catch (error) {
-        console.error("Camera error:", error);
-        Alert.alert("Hata", "Fotoğraf çekilirken bir hata oluştu.");
-      }
-    }
-  };
+        if (formData.facePhotos.length < cameraGuides.length) {
+            Alert.alert("Hata", `Lütfen önce ${cameraGuides.length} farklı açıdan yüz kaydı yapınız.`);
+            return;
+        }
+        if (!formData.name || !formData.studentNo || !formData.email || !formData.password || !formData.studentFaculty || !formData.studentDepartment || !formData.studentClass) {
+            Alert.alert("Eksik Bilgi", "Lütfen tüm kişisel ve bölüm bilgilerini doldurun.");
+            return;
+        }
 
-  const startFaceRegistration = () => {
-    if (!formData.kvkkAccepted) {
-      Alert.alert("Hata", "Lütfen önce KVKK sözleşmesini kabul edin.");
-      return;
-    }
-    
-    setPhotoCount(0);
-    setFormData(prev => ({
-      ...prev,
-      facePhotos: []
-    }));
-    setCameraGuide("Lütfen yüzünüzü kameraya doğru çevirin");
-    setCameraVisible(true);
-  };
+        if (formData.email.includes("@")) {
+            Alert.alert("Doğrulama Kodu Gönderildi", "Lütfen e-postanızı kontrol edin. (Mock code: 1234)");
+            setFormData((prev) => ({ ...prev, isVerified: true }));
+        } else {
+            Alert.alert("Geçersiz E-posta", "Lütfen geçerli bir e-posta girin.");
+        }
+    };
 
-  const sendVerificationCode = () => {
-    if (!formData.kvkkAccepted) {
-      Alert.alert("Hata", "KVKK sözleşmesini kabul etmelisiniz.");
-      return;
-    }
-    if (formData.facePhotos.length < 5) {
-      Alert.alert("Hata", "Lütfen önce 5 farklı açıdan yüz kaydı yapınız.");
-      return;
-    }
-    if (formData.email.includes("@")) {
-      Alert.alert("Doğrulama Kodu Gönderildi", "Lütfen e-postanızı kontrol edin.");
-      setFormData((prev) => ({ ...prev, isVerified: true }));
-    } else {
-      Alert.alert("Geçersiz E-posta", "Lütfen geçerli bir e-posta girin.");
-    }
-  };
+    const handleRegister = async () => {
+        if (!formData.kvkkAccepted) {
+            Alert.alert("Hata", "KVKK sözleşmesini kabul etmelisiniz.");
+            return;
+        }
+        if (formData.facePhotos.length < cameraGuides.length) {
+            Alert.alert("Hata", `Lütfen ${cameraGuides.length} farklı açıdan yüz fotoğrafı çekin.`);
+            return;
+        }
+        if (!formData.name || !formData.studentNo || !formData.email || !formData.password || !formData.studentFaculty || !formData.studentDepartment || !formData.studentClass) {
+            Alert.alert("Eksik Bilgi", "Lütfen tüm kişisel ve bölüm bilgilerini doldurun.");
+            return;
+        }
 
-  const handleRegister = async () => {
-    if (!formData.kvkkAccepted) {
-      Alert.alert("Hata", "KVKK sözleşmesini kabul etmelisiniz.");
-      return;
-    }
-    if (formData.facePhotos.length < 5) {
-      Alert.alert("Hata", "Lütfen 5 farklı açıdan yüz fotoğrafı çekin.");
-      return;
-    }
-    if (formData.isVerified && formData.verificationCode === "1234") {
-      // TODO: Yüz fotoğraflarını backend/Raspberry Pi'ye göndermek
-      Alert.alert("Kayıt Başarılı", "Öğrenci profiline yönlendiriliyorsunuz.");
-      navigation.navigate("StudentProfile", { studentInfo: formData });
-    } else {
-      Alert.alert("Doğrulama Hatası", "Lütfen doğru kodu girin.");
-    }
-  };
+        if (formData.isVerified && formData.verificationCode === "1234") {
+            console.log("Registering student with data:", formData);
+            Alert.alert("Kayıt Başarılı", "Öğrenci profiline yönlendiriliyorsunuz.");
+            // navigation.navigate("StudentProfile", { studentInfo: formData });
+            // navigation.goBack();
+        } else if (!formData.isVerified) {
+            Alert.alert("Doğrulama Gerekli", "Lütfen önce e-posta adresinize gönderilen doğrulama kodunu alın.");
+        } else {
+            Alert.alert("Doğrulama Hatası", "Lütfen doğru kodu girin.");
+        }
+    };
 
-  const flipCamera = () => {
-    setCameraType(
-      cameraType === 'back' ? 'front' : 'back'
-    );
-  };
+    const startFaceRegistration = () => {
+        if (!formData.kvkkAccepted) {
+            Alert.alert("Hata", "Lütfen önce KVKK sözleşmesini kabul edin.");
+            return;
+        }
+        navigation.navigate("FaceRegister", { onPhotosCaptured: handlePhotosCaptured });
+    };
 
-  return (
-    <ScrollView style={styles.container}>
-      
-      <View style={styles.formSection}>
-        <Text style={styles.sectionTitle}>Kişisel Bilgiler</Text>
-        <PaperInput
-          label="Ad Soyad"
-          style={styles.input}
-          onChangeText={(text) => setFormData((prev) => ({ ...prev, name: text }))}
-          mode="outlined"
-          left={<PaperInput.Icon icon="account" />}
-        />
-        <PaperInput
-          label="Öğrenci No"
-          style={styles.input}
-          onChangeText={(text) => setFormData((prev) => ({ ...prev, studentNo: text }))}
-          mode="outlined"
-          left={<PaperInput.Icon icon="card-account-details" />}
-        />
-        <PaperInput
-          label="E-Posta"
-          keyboardType="email-address"
-          style={styles.input}
-          onChangeText={(text) => setFormData((prev) => ({ ...prev, email: text }))}
-          mode="outlined"
-          left={<PaperInput.Icon icon="email" />}
-        />
-        <PaperInput
-          label="Telefon"
-          style={styles.input}
-          onChangeText={(text) => setFormData((prev) => ({ ...prev, phone: Number }))}
-          mode="outlined"
-          left={<PaperInput.Icon icon="phone" />}
-        />
-        <PaperInput
-          label="Adres"
-          style={styles.input}
-          onChangeText={(text) => setFormData((prev) => ({ ...prev, address: text }))}
-          mode="outlined"
-          left={<PaperInput.Icon icon="home" />}
-        />
-        <PaperInput
-          label="Şifre"
-          secureTextEntry
-          style={styles.input}
-          onChangeText={(text) => setFormData((prev) => ({ ...prev, password: text }))}
-          mode="outlined"
-          left={<PaperInput.Icon icon="lock" />}
-        />
-        <PaperInput
-          label="Sınıf"
-          style={styles.input}
-          onChangeText={(text) => setFormData((prev) => ({ ...prev, studentClass: text }))}
-          mode="outlined"
-          keyboardType="numeric"
-          left={<PaperInput.Icon icon="school" />}
-        />
-      </View>
-      
-      <View style={styles.formSection}>
-        <Text style={styles.sectionTitle}>Bölüm Bilgileri</Text>
-        <Text style={styles.label}>Fakülte:</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedFaculty}
-            onValueChange={handleFacultyChange}
-            style={styles.picker}
-          >
-            <Picker.Item label="Fakülte Seçin" value="" />
-            {facultiesData.map((faculty) => (
-              <Picker.Item key={faculty.name} label={faculty.name} value={faculty.name} />
-            ))}
-          </Picker>
-        </View>
+    const isFaceRegButtonDisabled = !formData.kvkkAccepted || formData.facePhotos.length === cameraGuides.length;
+    const getFaceRegButtonText = () => {
+        if (!formData.kvkkAccepted) return "KVKK'yı Kabul Edin";
+        if (formData.facePhotos.length === 0) return "Yüz Kaydı Başlat";
+        if (formData.facePhotos.length === cameraGuides.length) return "Yüz Kaydı Tamamlandı";
+        return `Yüz Kaydı Yapılıyor (<span class="math-inline">\{formData\.facePhotos\.length\}/</span>{cameraGuides.length})`;
+    };
+    const getFaceRegButtonIcon = () => {
+        if (!formData.kvkkAccepted) return "warning-outline";
+        if (formData.facePhotos.length === cameraGuides.length) return "check-circle-outline";
+        return "camera";
+    };
 
-        <Text style={styles.label}>Bölüm:</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedDepartment}
-            onValueChange={(itemValue) => {
-              setSelectedDepartment(itemValue);
-              setFormData((prev) => ({ ...prev, studentDepartment: itemValue }));
-            }}
-            enabled={departments.length > 0}
-            style={styles.picker}
-          >
-            <Picker.Item label="Bölüm Seçin" value="" />
-            {departments.map((department) => (
-              <Picker.Item key={department} label={department} value={department} />
-            ))}
-          </Picker>
-        </View>
-      </View>
-      
-      <View style={styles.formSection}>
-        <Text style={styles.sectionTitle}>Yüz Kaydı</Text>
-        <TouchableOpacity
-          style={styles.faceRegButton}
-          onPress={startFaceRegistration}
-        >
-          <Ionicons name="camera" size={24} color="#fff" style={styles.buttonIcon} />
-          <Text style={styles.buttonText}>
-            {formData.facePhotos.length === 0 
-              ? "Yüz Kaydı Başlat" 
-              : `Yüz Kaydı (${formData.facePhotos.length}/5)`}
-          </Text>
-        </TouchableOpacity>
-        
-        {formData.facePhotos.length > 0 && (
-          <View style={styles.progressContainer}>
-            <Text style={styles.progressText}>Yüz Kaydı İlerlemesi: {formData.facePhotos.length}/5</Text>
-            <ProgressBar progress={formData.facePhotos.length / 5} color="#007bff" style={styles.progressBar} />
-          </View>
-        )}
-      </View>
-      
-      <View style={styles.formSection}>
-        <Text style={styles.sectionTitle}>KVKK Onayı</Text>
-        <TouchableOpacity onPress={() => setKvkkVisible(true)} style={styles.linkButton}>
-          <Text style={styles.linkText}>KVKK Metnini Oku</Text>
-        </TouchableOpacity>
+    return (
+        <ScrollView style={styles.container}>
+            <View style={styles.formSection}>
+                <Text style={styles.sectionTitle}>Kişisel Bilgiler</Text>
+                <PaperInput label="Ad Soyad" style={styles.input} onChangeText={(text) => setFormData((prev) => ({ ...prev, name: text }))} mode="outlined" left={<PaperInput.Icon icon="account" />} value={formData.name} />
+                <PaperInput label="Öğrenci No" style={styles.input} onChangeText={(text) => setFormData((prev) => ({ ...prev, studentNo: text }))} mode="outlined" keyboardType="number-pad" left={<PaperInput.Icon icon="card-account-details" />} value={formData.studentNo} />
+                <PaperInput label="E-Posta" keyboardType="email-address" autoCapitalize="none" style={styles.input} onChangeText={(text) => setFormData((prev) => ({ ...prev, email: text }))} mode="outlined" left={<PaperInput.Icon icon="email" />} value={formData.email} />
+                <PaperInput label="Telefon (Opsiyonel)" style={styles.input} onChangeText={(text) => setFormData((prev) => ({ ...prev, phone: text }))} mode="outlined" keyboardType="phone-pad" left={<PaperInput.Icon icon="phone" />} value={formData.phone} />
+                <PaperInput label="Adres (Opsiyonel)" style={styles.input} onChangeText={(text) => setFormData((prev) => ({ ...prev, address: text }))} mode="outlined" left={<PaperInput.Icon icon="home" />} value={formData.address} />
+                <PaperInput label="Şifre" secureTextEntry style={styles.input} onChangeText={(text) => setFormData((prev) => ({ ...prev, password: text }))} mode="outlined" left={<PaperInput.Icon icon="lock" />} value={formData.password} />
+                <PaperInput label="Sınıf" style={styles.input} onChangeText={(text) => setFormData((prev) => ({ ...prev, studentClass: text }))} mode="outlined" keyboardType="numeric" left={<PaperInput.Icon icon="school" />} value={formData.studentClass} />
+            </View>
 
-        <TouchableOpacity
-          style={[styles.kvkkButton, formData.kvkkAccepted ? styles.kvkkAccepted : null]}
-          onPress={() => setFormData((prev) => ({ ...prev, kvkkAccepted: !prev.kvkkAccepted }))}
-        >
-          <Ionicons 
-            name={formData.kvkkAccepted ? "checkbox" : "square-outline"} 
-            size={24} 
-            color={formData.kvkkAccepted ? "#fff" : "#007bff"} 
-            style={styles.buttonIcon} 
-          />
-          <Text style={[styles.buttonText, formData.kvkkAccepted ? null : styles.darkText]}>
-            KVKK'yı Onaylıyorum
-          </Text>
-        </TouchableOpacity>
-      </View>
-      
-      <View style={styles.formSection}>
-        <Text style={styles.sectionTitle}>Hesap Doğrulama</Text>
-        {!formData.isVerified ? (
-          <Button
-            mode="contained"
-            onPress={sendVerificationCode}
-            style={styles.verificationButton}
-            icon="email-send"
-          >
-            Doğrulama Kodu Gönder
-          </Button>
-        ) : (
-          <>
-            <PaperInput
-              label="Doğrulama Kodu"
-              style={styles.input}
-              onChangeText={(text) => setFormData((prev) => ({ ...prev, verificationCode: text }))}
-              mode="outlined"
-              left={<PaperInput.Icon icon="key" />}
-            />
-            <Button
-              mode="contained"
-              onPress={handleRegister}
-              style={styles.registerButton}
-              icon="account-check"
-            >
-              Kaydol
-            </Button>
-          </>
-        )}
-      </View>
+            <View style={styles.formSection}>
+                <Text style={styles.sectionTitle}>Bölüm Bilgileri</Text>
+                <Text style={styles.label}>Fakülte:</Text>
+                <View style={styles.pickerContainer}>
+                    <Picker selectedValue={selectedFaculty} onValueChange={handleFacultyChange} style={styles.picker}>
+                        <Picker.Item label="Fakülte Seçin" value="" />
+                        {facultiesData.map((faculty) => (
+                            <Picker.Item key={faculty.name} label={faculty.name} value={faculty.name} color="#888" />
+                        ))}
+                    </Picker>
+                </View>
 
-      {/* Kamera Modalı */}
-      <Modal visible={cameraVisible} animationType="slide">
-        <View style={styles.cameraContainer}>
-          {hasPermission === null ? (
-            <Text style={styles.cameraText}>Kamera izni isteniyor...</Text>
-          ) : hasPermission === false ? (
-            <Text style={styles.cameraText}>Kamera izni reddedildi. Lütfen ayarlardan izin verin.</Text>
-          ) : device == null ? (
-            <Text style={styles.cameraText}>Kamera yükleniyor...</Text>
-          ) : (
-            <>
-              <Camera
-                ref={cameraRef}
-                style={styles.camera}
-                device={device}
-                isActive={cameraVisible}
-                photo={true}
-              />
-              
-              <View style={styles.cameraGuideContainer}>
-                <Text style={styles.cameraGuideText}>{cameraGuide}</Text>
-                <Text style={styles.photoCountText}>Fotoğraf: {photoCount}/5</Text>
-              </View>
-              
-              <View style={styles.cameraControls}>
+                <Text style={styles.label}>Bölüm:</Text>
+                <View style={styles.pickerContainer}>
+                    <Picker selectedValue={selectedDepartment} onValueChange={(itemValue) => { setSelectedDepartment(itemValue); setFormData((prev) => ({ ...prev, studentDepartment: itemValue })); }} enabled={departments.length > 0} style={styles.picker}>
+                        <Picker.Item label="Bölüm Seçin" value="" />
+                        {departments.map((department) => (
+                            <Picker.Item key={department} label={department} value={department} color="#888" />
+                        ))}
+                    </Picker>
+                </View>
+            </View>
+
+            <View style={styles.formSection}>
+                <Text style={styles.sectionTitle}>Yüz Kaydı</Text>
                 <TouchableOpacity
-                  style={styles.cameraButton}
-                  onPress={takePicture}
+                    style={[styles.faceRegButton, formData.facePhotos.length === cameraGuides.length && styles.faceRegButtonDone]}
+                    onPress={startFaceRegistration}
+                    disabled={isFaceRegButtonDisabled}
                 >
-                  <Ionicons name="camera" size={36} color="#fff" />
+                    <Ionicons
+                        name={getFaceRegButtonIcon()}
+                        size={24}
+                        color="white"
+                        style={styles.buttonIcon}
+                    />
+                    <Text style={styles.buttonText}>
+                        {getFaceRegButtonText()}
+                    </Text>
                 </TouchableOpacity>
-                
-                {devices.back && (
-                  <TouchableOpacity 
-                    style={styles.flipButton} 
-                    onPress={flipCamera}
-                  >
-                    <Ionicons name="camera-reverse" size={30} color="#fff" />
-                  </TouchableOpacity>
+
+                {formData.facePhotos.length > 0 && formData.facePhotos.length < cameraGuides.length && (
+                    <View style={styles.progressContainer}>
+                        <Text style={styles.progressText}>Yüz Kaydı İlerlemesi: {formData.facePhotos.length}/{cameraGuides.length}</Text>
+                        <ProgressBar progress={formData.facePhotos.length / cameraGuides.length} color="#007bff" style={styles.progressBar} />
+                    </View>
                 )}
-                
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={() => setCameraVisible(false)}
-                >
-                  <Ionicons name="close-circle" size={30} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
-        </View>
-      </Modal>
 
-      {/* KVKK Modal */}
-      <PaperModal visible={kvkkVisible} onDismiss={() => setKvkkVisible(false)}>
-        <ScrollView style={styles.kvkkModal}>
-          <TouchableOpacity onPress={() => setKvkkVisible(false)} style={styles.modalCloseButton}>
-            <Ionicons name="close" size={24} color="black" />
-          </TouchableOpacity>
-          <Text style={styles.kvkkTitle}>KVKK Aydınlatma Metni</Text>
-          <Paragraph style={styles.kvkkText}>{kvkkText}</Paragraph>
+                {formData.facePhotos.length === cameraGuides.length && (
+                    <Text style={styles.successText}>Yüz kayıt işlemi başarıyla tamamlandı!</Text>
+                )}
+            </View>
+
+            <View style={styles.formSection}>
+                <Text style={styles.sectionTitle}>KVKK Onayı</Text>
+                <TouchableOpacity 
+                                    onPress={() => navigation.navigate('KvkkText')} // <-- Yeni ekrana yönlendirme
+                                        style={styles.linkButton}
+                                        >
+                                      <Text style={styles.linkText}>KVKK Metnini Oku</Text>
+                                </TouchableOpacity>
+                <PaperModal visible={kvkkVisible} onDismiss={() => setKvkkVisible(false)} contentContainerStyle={styles.kvkkModalContainer}>
+                {/* Modal içeriği için max yüksekliği kontrol eden bir View */}
+                <View style={styles.kvkkModalContentWrapper}>
+                    {/* Kapatma butonu - Metin akışını etkilememesi için absolute konumlandırılacak */}
+                    <TouchableOpacity onPress={() => setKvkkVisible(false)} style={styles.modalCloseButton}>
+                        <Ionicons name="close" size={24} color="black" />
+                    </TouchableOpacity>
+
+                    <Text style={styles.kvkkTitle}>KVKK Aydınlatma Metni</Text>
+
+                    {/* KVKK metnini içeren kaydırılabilir alan */}
+                    <ScrollView style={styles.kvkkTextScrollView}> {/* ScrollView için ayrı stil */}
+                        <Text style={styles.kvkkText}>{kvkkText}</Text>
+                    </ScrollView>
+                </View>
+            </PaperModal>
+                <TouchableOpacity
+                    style={[styles.kvkkButton, formData.kvkkAccepted ? styles.kvkkAccepted : null]}
+                    onPress={() => setFormData((prev) => ({ ...prev, kvkkAccepted: !prev.kvkkAccepted }))}
+                >
+                    <Ionicons
+                        name={formData.kvkkAccepted ? "checkbox" : "square-outline"}
+                        size={24}
+                        color={formData.kvkkAccepted ? "#fff" : "#007bff"}
+                        style={styles.buttonIcon}
+                    />
+                    <Text style={[styles.buttonText, formData.kvkkAccepted ? null : styles.darkText]}>
+                        KVKK'yı Onaylıyorum
+                    </Text>
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.formSection}>
+                <Text style={styles.sectionTitle}>Hesap Doğrulama</Text>
+                {!formData.isVerified ? (
+                    <Button
+                        mode="contained"
+                        onPress={sendVerificationCode}
+                        style={styles.verificationButton}
+                        icon="email-send"
+                        disabled={
+                            formData.facePhotos.length < cameraGuides.length ||
+                            !formData.kvkkAccepted ||
+                            !formData.email ||
+                            !formData.email.includes('@') ||
+                            !formData.name || !formData.studentNo || !formData.password || !formData.studentFaculty || !formData.studentDepartment || !formData.studentClass
+                        }
+                    >
+                        Doğrulama Kodu Gönder
+                    </Button>
+                ) : (
+                    <>
+                        <PaperInput
+                            label="Doğrulama Kodu"
+                            style={styles.input}
+                            onChangeText={(text) => setFormData((prev) => ({ ...prev, verificationCode: text }))}
+                            mode="outlined"
+                            keyboardType="number-pad"
+                            left={<PaperInput.Icon icon="key" />}
+                            value={formData.verificationCode}
+                        />
+                        <Button
+                            mode="contained"
+                            onPress={handleRegister}
+                            style={styles.registerButton}
+                            icon="account-check"
+                            disabled={
+                                !formData.kvkkAccepted ||
+                                formData.facePhotos.length < cameraGuides.length ||
+                                !formData.isVerified ||
+                                formData.verificationCode !== "1234" ||
+                                !formData.name || !formData.studentNo || !formData.email || !formData.password || !formData.studentFaculty || !formData.studentDepartment || !formData.studentClass
+                            }
+                        >
+                            Kaydol
+                        </Button>
+                    </>
+                )}
+            </View>
+
+            <PaperModal visible={kvkkVisible} onDismiss={() => setKvkkVisible(false)} contentContainerStyle={styles.kvkkModalContainer}>
+                <ScrollView style={styles.kvkkModalContent}>
+                    <TouchableOpacity onPress={() => setKvkkVisible(false)} style={styles.modalCloseButton}>
+                        <Ionicons name="close" size={24} color="black" />
+                    </TouchableOpacity>
+                    <Text style={styles.kvkkTitle}>KVKK Aydınlatma Metni</Text>
+                    <Paragraph style={styles.kvkkText}>{kvkkText}</Paragraph>
+                </ScrollView>
+            </PaperModal>
         </ScrollView>
-      </PaperModal>
-    </ScrollView>
-  );
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#f5f5f7',
-  },
-  headerText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#007bff',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  formSection: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
-  },
-  input: {
-    marginBottom: 12,
-    backgroundColor: '#fff',
-  },
-  label: {
-    fontSize: 16,
-    marginBottom: 5,
-    color: '#555',
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    marginBottom: 15,
-    backgroundColor: '#fff',
-  },
-  picker: {
-    height: 50,
-  },
-  linkButton: {
-    padding: 10,
-    marginBottom: 10,
-  },
-  linkText: {
-    color: '#007bff',
-    textDecorationLine: 'underline',
-    fontSize: 16,
-  },
-  kvkkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    padding: 15,
-    borderRadius: 5,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#007bff',
-  },
-  kvkkAccepted: {
-    backgroundColor: '#007bff',
-  },
-  verificationButton: {
-    backgroundColor: '#28a745',
-    padding: 10,
-    marginTop: 5,
-  },
-  registerButton: {
-    backgroundColor: '#007bff',
-    padding: 10,
-    marginTop: 10,
-  },
+    container: {
+        flex: 1,
+        padding: 20,
+        backgroundColor: '#f5f5f7',
+    },
+    headerText: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#007bff',
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    formSection: {
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        padding: 15,
+        marginBottom: 15,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+        elevation: 3,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 15,
+        color: '#333',
+    },
+    input: {
+        marginBottom: 12,
+        backgroundColor: '#fff',
+    },
+    label: {
+        fontSize: 16,
+        marginBottom: 5,
+        color: '#555',
+    },
+    pickerContainer: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 5,
+        marginBottom: 15,
+        backgroundColor: '#fff',
+        overflow: 'hidden',
+    },
+    picker: {
+        height: 50,
+        width: '100%',
+    },
+    linkButton: {
+        paddingVertical: 8,
+        marginBottom: 10,
+    },
+    linkText: {
+        color: '#007bff',
+        textDecorationLine: 'underline',
+        fontSize: 16,
+    },
+    kvkkButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#f0f0f0',
+        padding: 15,
+        borderRadius: 5,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: '#007bff',
+    },
+    kvkkAccepted: {
+        backgroundColor: '#007bff',
+        borderColor: '#007bff',
+    },
+    verificationButton: {
+        backgroundColor: '#28a745',
+        padding: 5,
+        marginTop: 5,
+    },
+    registerButton: {
+        backgroundColor: '#007bff',
+        padding: 5,
+        marginTop: 10,
+    },
+    
   faceRegButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -478,7 +379,11 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 5,
     marginBottom: 10,
+    opacity: 1, // Default opacity
   },
+   faceRegButtonDisabled: {
+       opacity: 0.6, // Reduced opacity for disabled state
+   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
@@ -503,6 +408,14 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
   },
+   successText: {
+       fontSize: 14,
+       color: '#28a745',
+       textAlign: 'center',
+       marginTop: 5,
+   },
+
+  // Camera Modal Styles
   cameraContainer: {
     flex: 1,
     backgroundColor: 'black',
@@ -510,9 +423,17 @@ const styles = StyleSheet.create({
   camera: {
     flex: 1,
   },
+   cameraOverlay: {
+       position: 'absolute',
+       top: 0,
+       left: 0,
+       right: 0,
+       bottom: 0,
+       zIndex: 1, // Ensure overlay is above camera feed
+   },
   cameraGuideContainer: {
     position: 'absolute',
-    top: 40,
+    top: 60, // Positioned lower to avoid status bar
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -533,7 +454,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     textAlign: 'center',
-    marginTop: 50,
+    marginTop: 'auto', // Center vertically
+    marginBottom: 'auto', // Center vertically
+    paddingHorizontal: 20, // Add some padding
   },
   cameraControls: {
     position: 'absolute',
@@ -544,6 +467,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    zIndex: 2, // Ensure controls are above overlay
   },
   cameraButton: {
     backgroundColor: '#007bff',
@@ -553,37 +477,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  flipButton: {
-    position: 'absolute',
-    right: 30,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 10,
-    borderRadius: 30,
-  },
-  closeButton: {
-    position: 'absolute',
-    left: 30,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 10,
-    borderRadius: 30,
-  },
-  kvkkModal: {
-    padding: 20,
-    backgroundColor: '#fff',
-    maxHeight: '80%',
-  },
-  modalCloseButton: {
-    alignSelf: 'flex-end',
-    padding: 10,
-  },
-  kvkkTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  kvkkText: {
-    fontSize: 14,
-    lineHeight: 22,
-  },
+   cameraOverlayCloseButton: {
+     position: 'absolute',
+     top: 60, // Positioned similar to guide container but on the side
+     left: 20,
+     zIndex: 2, // Ensure close button is above overlay
+   },
+
+  // KVKK Modal Styles
+     kvkkModalContainer: {
+           backgroundColor: '#fff',
+           padding: 20, // Wrapper View'ın etrafındaki boşluk
+           marginHorizontal: 20,
+           borderRadius: 10,
+            // maxHeight'i buradan kaldırıp kvkkModalContentWrapper'a taşıdık
+       },
+      kvkkModalContentWrapper: { // ScrollView ve başlıkları sarmalayan View
+            maxHeight: height * 0.7, // Modal içeriğinin maksimum yüksekliği
+            width: '100%', // Genellikle modal container'ın içindeki boşluğu kaplar
+            // position: 'relative', // Absolute konumlandırılan butonlar için referans noktası
+        },
+      kvkkTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 15, // Başlık altındaki boşluk
+        textAlign: 'center',
+        color: '#333',
+        // Kapatma butonu absolute olduğu için başlık metninin kaymasını engellemek için 
+        // sağ padding eklemek faydalı olabilir. İkonun boyutuna göre ayarlayın.
+        paddingRight: 30, 
+      },
+      kvkkTextScrollView: { // Metni saran ScrollView'ın stili
+        // ScrollView'un kendi yüksekliğini içeriğe göre ayarlamasına izin verin, 
+        // üst View max yüksekliği kontrol ediyor.
+        // İhtiyaca göre padding veya margin eklenebilir:
+        // paddingBottom: 10, 
+      },
+      kvkkText: { // Paragraph component'inin stili
+        fontSize: 14,
+        lineHeight: 22,
+        color: '#555',
+         // Burada flex: 1 veya sabit bir yükseklik olmamalı
+      },
+      modalCloseButton: {
+        // Position absolute kullanarak sağ üst köşeye sabitleyin
+        position: 'absolute',
+        top: 5, // Üstten boşluk
+        right: 5, // Sağdan boşluk
+        padding: 5, // Dokunma alanını kolaylaştırır
+        zIndex: 1, // Diğer içeriklerin üstünde görünmesini sağlar
+      },
 });

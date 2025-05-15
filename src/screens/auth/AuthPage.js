@@ -61,7 +61,7 @@ const AuthPage = ({ navigation }) => {
           style={styles.logo}
           resizeMode="contain"
         />
-        <Text style={styles.headerText}>Yoklama Sistemi</Text>
+        <Text style={styles.headerText}>İstanbul Üniversitesi-Cerrahpaşa Yoklama Sistemi</Text>
       </View>
 
       <View style={styles.tabContainer}>
@@ -119,10 +119,11 @@ const AuthPage = ({ navigation }) => {
               </View>
               
               <View style={styles.inputContainer}>
-                <Ionicons name="card-outline" size={20} color="#666" style={styles.inputIcon} />
+                <Ionicons name="card-outline" size={20} color="#333" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Öğrenci Numarası"
+                  placeholderTextColor="#888" 
                   value={studentNumber}
                   onChangeText={setStudentNumber}
                   keyboardType="number-pad"
@@ -134,6 +135,7 @@ const AuthPage = ({ navigation }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="Şifre"
+                  placeholderTextColor="#888" 
                   value={studentPassword}
                   onChangeText={setStudentPassword}
                   secureTextEntry={!showStudentPassword}
@@ -187,6 +189,7 @@ const AuthPage = ({ navigation }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="Sicil Numarası"
+                  placeholderTextColor="#888" 
                   value={academicianNumber}
                   onChangeText={setAcademicianNumber}
                   keyboardType="number-pad"
@@ -198,6 +201,7 @@ const AuthPage = ({ navigation }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="Şifre"
+                  placeholderTextColor="#888" 
                   value={academicianPassword}
                   onChangeText={setAcademicianPassword}
                   secureTextEntry={!showAcademicianPassword}
@@ -262,9 +266,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   headerText: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
+    textAlign: 'center',
   },
   tabContainer: {
     flexDirection: 'row',
@@ -350,17 +355,17 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textDecorationLine: 'underline',
   },
+ 
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
+    borderColor: '#ccc',
     borderWidth: 1,
-    borderColor: '#e0e0e0',
     borderRadius: 8,
-    marginBottom: 16,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
+    marginBottom: 15,
     backgroundColor: '#f9f9f9',
-  },
+    },
   inputIcon: {
     marginRight: 10,
   },
@@ -368,7 +373,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
     fontSize: 16,
-    color: '#333',
+    color: '#888',
   },
   eyeIcon: {
     padding: 10,

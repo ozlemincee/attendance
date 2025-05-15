@@ -1,198 +1,123 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert } from 'react-native';
-import { Surface, Checkbox } from 'react-native-paper';
+// CourseSelection.js
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, SafeAreaView, Platform } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { allCoursesData } from '../../data/courses'; // Assuming courses.js is in ./data/
 
-const CourseSelection = ({ navigation }) => {
-  const [selectedCourses, setSelectedCourses] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
+const CourseSelectionScreen = ({ route, navigation }) => {
+  const { studentId, initialYear } = route.params;
 
-  // Örnek ders verisi
+  const [selectedYear, setSelectedYear] = useState(initialYear ? String(initialYear) : '1');
+  const [selectedSemester, setSelectedSemester] = useState('Güz'); // 'Güz' or 'Bahar'
+  const [selectedCourses, setSelectedCourses] = useState({}); // Using an object for easier toggle: {courseId: true/false}
+
+  const availableYears = Object.keys(allCoursesData);
+
+  const coursesToDisplay = useMemo(() => {
+    if (allCoursesData[selectedYear] && allCoursesData[selectedYear][selectedSemester]) {
+      return allCoursesData[selectedYear][selectedSemester];
+    }
+    return [];
+  }, [selectedYear, selectedSemester]);
+
   useEffect(() => {
-    // Burada gerçek bir API çağrısı yapılacak
-    const fetchCourses = async () => {
-      // Simüle edilmiş API yanıtı
-      const mockCourses = [
-        {
-          id: 'CS101',
-          name: 'Programlama Temelleri',
-          instructor: 'Dr. Ahmet Yıldız',
-          schedule: 'Pazartesi 10:00-12:00',
-          capacity: 45,
-          enrolled: 30,
-          required: true,
-        },
-        {
-          id: 'CS202',
-          name: 'Veri Yapıları',
-          instructor: 'Dr. Mehmet Kaya',
-          schedule: 'Salı 13:00-15:00',
-          capacity: 40,
-          enrolled: 35,
-          required: true,
-        },
-        {
-          id: 'MATH101',
-          name: 'Matematik I',
-          instructor: 'Dr. Ali Öztürk',
-          schedule: 'Çarşamba 09:00-11:00',
-          capacity: 50,
-          enrolled: 45,
-          required: true,
-        },
-        {
-          id: 'PHY101',
-          name: 'Fizik I',
-          instructor: 'Dr. Zeynep Demir',
-          schedule: 'Perşembe 14:00-16:00',
-          capacity: 40,
-          enrolled: 25,
-          required: true,
-        },
-        {
-          id: 'ENG101',
-          name: 'İngilizce I',
-          instructor: 'Dr. John Smith',
-          schedule: 'Cuma 10:00-12:00',
-          capacity: 30,
-          enrolled: 20,
-          required: false,
-        },
-      ];
-
-      setCourses(mockCourses);
-      setLoading(false);
-    };
-
-    fetchCourses();
-  }, []);
+    // Reset selected courses when year or semester changes
+    setSelectedCourses({});
+  }, [selectedYear, selectedSemester]);
 
   const toggleCourseSelection = (courseId) => {
-    setSelectedCourses(prev => {
-      if (prev.includes(courseId)) {
-        return prev.filter(id => id !== courseId);
-      } else {
-        return [...prev, courseId];
-      }
-    });
+    setSelectedCourses(prev => ({
+      ...prev,
+      [courseId]: !prev[courseId]
+    }));
   };
 
-  const handleSubmit = () => {
-    if (selectedCourses.length === 0) {
-      Alert.alert('Hata', 'Lütfen en az bir ders seçiniz.');
+  const handleSubmitSelection = () => {
+    const chosenCourses = coursesToDisplay.filter(course => selectedCourses[course.id]);
+    if (chosenCourses.length === 0) {
+      Alert.alert('Uyarı', 'Lütfen en az bir ders seçin.');
       return;
     }
 
-    // Burada gerçek bir API çağrısı yapılacak
-    // submitCourseSelection(selectedCourses);
+    console.log('Student ID:', studentId);
+    console.log('Selected Year for Courses:', selectedYear);
+    console.log('Selected Semester:', selectedSemester);
+    console.log('Chosen Courses:', chosenCourses.map(c => c.name));
     
+    // Here you would typically send data to a backend
     Alert.alert(
       'Başarılı',
-      'Ders seçiminiz kaydedildi. Derslerin onaylanması için akademisyenlerin onayı bekleniyor.',
-      [
-        {
-          text: 'Tamam',
-          onPress: () => navigation.navigate('StudentProfile')
-        }
-      ]
-    );
-  };
-
-  const renderCourseCard = (course) => {
-    const isSelected = selectedCourses.includes(course.id);
-    const isFull = course.enrolled >= course.capacity;
-
-    return (
-      <Surface key={course.id} style={styles.courseCard}>
-        <View style={styles.courseHeader}>
-          <View style={styles.courseInfo}>
-            <Text style={styles.courseCode}>{course.id}</Text>
-            <Text style={styles.courseName}>{course.name}</Text>
-          </View>
-          <Checkbox
-            status={isSelected ? 'checked' : 'unchecked'}
-            onPress={() => !isFull && toggleCourseSelection(course.id)}
-            disabled={isFull}
-            color="#2196F3"
-          />
-        </View>
-
-        <View style={styles.courseDetails}>
-          <View style={styles.detailRow}>
-            <Ionicons name="person-outline" size={16} color="#666" />
-            <Text style={styles.detailText}>{course.instructor}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Ionicons name="time-outline" size={16} color="#666" />
-            <Text style={styles.detailText}>{course.schedule}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Ionicons name="people-outline" size={16} color="#666" />
-            <Text style={styles.detailText}>
-              {course.enrolled}/{course.capacity} Öğrenci
-            </Text>
-          </View>
-        </View>
-
-        {course.required && (
-          <View style={styles.requiredBadge}>
-            <Text style={styles.requiredText}>Zorunlu Ders</Text>
-          </View>
-        )}
-
-        {isFull && (
-          <View style={styles.fullBadge}>
-            <Text style={styles.fullText}>Kontenjan Dolu</Text>
-          </View>
-        )}
-      </Surface>
+      'Ders seçimleriniz kaydedildi. Akademisyen onayı bekleniyor.',
+      [{ text: 'Tamam', onPress: () => navigation.goBack() }]
     );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Ders Seçimi</Text>
-        <View style={styles.placeholder} />
+      
+      <View style={styles.pickerContainer}>
+        <View style={styles.pickerWrapper}>
+            <Text style={styles.pickerLabel}>Sınıf Yılı:</Text>
+            <Picker
+            selectedValue={selectedYear}
+            style={styles.picker}
+            onValueChange={(itemValue) => setSelectedYear(itemValue)}
+            itemStyle={styles.pickerItem} // For iOS
+            >
+            {availableYears.map(year => (
+                <Picker.Item key={year} label={`${year}. Sınıf`} value={year} />
+            ))}
+            </Picker>
+        </View>
+        <View style={styles.pickerWrapper}>
+            <Text style={styles.pickerLabel}>Dönem:</Text>
+            <Picker
+            selectedValue={selectedSemester}
+            style={styles.picker}
+            onValueChange={(itemValue) => setSelectedSemester(itemValue)}
+            itemStyle={styles.pickerItem} // For iOS
+            >
+            <Picker.Item label="Güz Dönemi" value="Güz" />
+            <Picker.Item label="Bahar Dönemi" value="Bahar" />
+            </Picker>
+        </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <Surface style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Ders Seçim Kuralları</Text>
-          <Text style={styles.infoText}>
-            • Zorunlu derslerinizi seçmeyi unutmayınız.{'\n'}
-            • Ders seçimleriniz akademisyenler tarafından onaylanacaktır.{'\n'}
-            • Kontenjanı dolu olan dersleri seçemezsiniz.{'\n'}
-            • Ders çakışması olmamasına dikkat ediniz.
-          </Text>
-        </Surface>
-
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Dersler yükleniyor...</Text>
-          </View>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {coursesToDisplay.length > 0 ? (
+          coursesToDisplay.map((course) => (
+            <TouchableOpacity
+              key={course.id}
+              style={[
+                styles.courseItem,
+                selectedCourses[course.id] && styles.courseItemSelected
+              ]}
+              onPress={() => toggleCourseSelection(course.id)}
+            >
+              <View style={styles.courseInfo}>
+                <Text style={styles.courseName}>{course.name} ({course.id})</Text>
+                <Text style={styles.courseDetails}>
+                  Kredi: {course.credits} | AKTS: {course.ects} | Tür: {course.type} | Saat (T/U/L): {course.hours}
+                </Text>
+              </View>
+              <Ionicons
+                name={selectedCourses[course.id] ? "checkbox-outline" : "square-outline"}
+                size={24}
+                color={selectedCourses[course.id] ? "#2196F3" : "#888"}
+              />
+            </TouchableOpacity>
+          ))
         ) : (
-          <View style={styles.coursesContainer}>
-            {courses.map(course => renderCourseCard(course))}
-          </View>
+          <Text style={styles.noCoursesText}>Seçilen yıl ve dönem için ders bulunmamaktadır.</Text>
         )}
-
-        <TouchableOpacity
-          style={styles.submitButton}
-          onPress={handleSubmit}
-        >
-          <Text style={styles.submitButtonText}>Ders Seçimini Tamamla</Text>
-        </TouchableOpacity>
       </ScrollView>
+
+      {coursesToDisplay.length > 0 && (
+        <TouchableOpacity style={styles.submitButton} onPress={handleSubmitSelection}>
+            <Text style={styles.submitButtonText}>Seçimleri Kaydet ve Onaya Gönder</Text>
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 };
@@ -220,119 +145,96 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  placeholder: {
-    width: 40,
-  },
-  content: {
-    padding: 16,
-  },
-  infoCard: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
+  pickerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
     backgroundColor: '#fff',
-    elevation: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
-  infoTitle: {
+  pickerWrapper: {
+    flex: 1,
+    marginHorizontal: 5,
+    // On Android, Picker can have a native border/background.
+    // On iOS, you might need to style the Picker's parent View.
+    ...(Platform.OS === 'android' && {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 8,
+    })
+  },
+  pickerLabel: {
+    fontSize: 12,
+    color: '#555',
+    marginBottom: Platform.OS === 'ios' ? -10 : 0, // Adjust for iOS picker label overlap
+    paddingHorizontal: Platform.OS === 'ios' ? 10 : 0,
+    paddingTop: Platform.OS === 'ios' ? 10 : 0,
+    backgroundColor: Platform.OS === 'ios' ? '#fff' : 'transparent', // Ensure label is above picker
+    zIndex: Platform.OS === 'ios' ? 1: 0,
+  },
+  picker: {
+    height: Platform.OS === 'ios' ? 120 : 50, // iOS needs more height for the wheel
+    width: '100%',
+    // backgroundColor: '#f9f9f9', // Can cause issues on iOS picker display
+  },
+  pickerItem: { // Specifically for iOS item styling
+    height: 120,
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
   },
-  infoText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  coursesContainer: {
-    marginBottom: 20,
-  },
-  courseCard: {
+  scrollContent: {
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    backgroundColor: '#fff',
-    elevation: 1,
   },
-  courseHeader: {
+  courseItem: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    elevation: 1,
+  },
+  courseItemSelected: {
+    borderColor: '#2196F3',
+    backgroundColor: '#e3f2fd',
   },
   courseInfo: {
     flex: 1,
-  },
-  courseCode: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
+    marginRight: 10,
   },
   courseName: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: 'bold',
     color: '#333',
   },
   courseDetails: {
-    gap: 8,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  detailText: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666',
+    marginTop: 4,
   },
-  requiredBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  requiredText: {
-    fontSize: 12,
-    color: '#2196F3',
-    fontWeight: '500',
-  },
-  fullBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: '#FFEBEE',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  fullText: {
-    fontSize: 12,
-    color: '#F44336',
-    fontWeight: '500',
+  noCoursesText: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#777',
+    marginTop: 50,
   },
   submitButton: {
-    backgroundColor: '#4CAF50',
-    padding: 16,
+    backgroundColor: '#2196F3',
+    paddingVertical: 15,
+    margin: 16,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 8,
+    elevation: 2,
   },
   submitButtonText: {
-    color: '#fff',
+    color: 'white',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: 'bold',
   },
 });
 
-export default CourseSelection; 
+export default CourseSelectionScreen;

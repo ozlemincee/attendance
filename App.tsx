@@ -18,6 +18,11 @@ import AttendanceDetails from "./src/screens/academician/AttendanceDetails";
 import AcademicSettings from  "./src/screens/academician/AcademicSettings";
 import EditProfile from "./src/screens/student/EditProfile";
 import CourseDetails from "./src/screens/academician/CourseDetails";
+import StudentCourseAttendanceDetail from "./src/screens/student/StudentCourseAttendanceDetail";
+import FaceRegister from "./src/screens/student/FaceRegister";
+import CourseSelection from "./src/screens/student/CourseSelection";
+import MyCourses from "./src/screens/academician/MyCourses";
+import KvkkText from "./src/screens/auth/KvkkText";
 
 type RootStackParamList = {
   Auth: undefined;
@@ -37,6 +42,11 @@ type RootStackParamList = {
   AcademicSettings: undefined;
   EditProfile:undefined;
   CourseDetails: undefined;
+  StudentCourseAttendanceDetail: undefined;
+  FaceRegister: undefined;
+  CourseSelection: undefined;
+  MyCourses: undefined;
+  KvkkText: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -46,9 +56,13 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Auth">
         <Stack.Screen name="Auth" component={AuthPage} options={{ title: "İÜC" }} />
-        <Stack.Screen name="StudentProfile" component={StudentProfile} options={{ title: "Öğrenci Profili" }} />
+        <Stack.Screen name="StudentProfile" component={StudentProfile} options={{ title: "Öğrenci Profili", headerLeft(props) {
+          return null;
+        }, }}  />
         <Stack.Screen name="StudentRegister" component={StudentRegister} options={{ title: "Öğrenci Kaydı" }} />
-        <Stack.Screen name="AcademicianProfile" component={AcademicianProfile} options={{ title: "Akademisyen Profili" }} />
+        <Stack.Screen name="AcademicianProfile" component={AcademicianProfile} options={{ title: "Akademisyen Profili", headerLeft(props) {
+          return null;
+        }, }}  />
         <Stack.Screen name="AcademicianRegister" component={AcademicianRegister} options= {{title: "Akademisyen Kaydı"}} />
         <Stack.Screen name="ForgotPassword" component={ForgotPassword} options= {{title: "Şifremi Unuttum"}} />
         <Stack.Screen name="Attendance" component={Attendance} options= {{title: "Yoklama Durumu"}} />
@@ -62,8 +76,11 @@ export default function App() {
         <Stack.Screen name="AcademicSettings" component={AcademicSettings} options= {{title: "Ayarlar"}} />
         <Stack.Screen name="EditProfile" component={EditProfile} options= {{title: "Profili Düzenle"}} />
         <Stack.Screen name="CourseDetails" component={CourseDetails} options= {{title: "Ders Detayları"}} />
-
-
+        <Stack.Screen name="StudentCourseAttendanceDetail" component={StudentCourseAttendanceDetail} options= {{title: "Yoklama Detayları"}} />
+        <Stack.Screen name="FaceRegister" component={FaceRegister} options= {{title: "Yüz Kaydı"}} />
+        <Stack.Screen name="CourseSelection" component={CourseSelection} options= {{title: "Ders Seçimi"}} />
+        <Stack.Screen name="MyCourses" component={MyCourses} options= {{title: "Derslerim"}} />
+        <Stack.Screen name="KvkkText" component={KvkkText} options= {{title: "KVKK Metni"}} />
 
       </Stack.Navigator>
     </NavigationContainer>

@@ -1,4 +1,4 @@
-// ./src/screens/academician/AcademicSettings.js
+
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'; // Seçimi
 // import { ActionSheetIOS } from 'react-native'; 
 // Veya cross-platform bir kütüphane (örn: @expo/action-sheet veya react-native-action-sheet)
 
-const AcademicSettings = ({ navigation }) => {
+const StudentSettings = ({ navigation }) => {
   const [selectedLanguage, setSelectedLanguage] = useState('tr'); // Varsayılan dil
 
   // Uygulama yüklendiğinde kaydedilmiş dili yükle
@@ -215,4 +215,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AcademicSettings;
+export default StudentSettings;
